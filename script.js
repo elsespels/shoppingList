@@ -710,6 +710,15 @@ storageLocationForm.addEventListener('submit', addStorageLocation);
 document.getElementById('select-folder-button').addEventListener('click', selectFolder);
 document.getElementById('export-to-folder-button').addEventListener('click', exportToFolder);
 
+// Alternative storage options for browsers without File System Access API
+document.getElementById('download-json-button').addEventListener('click', downloadAsJson);
+document.getElementById('download-images-button').addEventListener('click', downloadImages);
+document.getElementById('import-json-input').addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        importFromJson(e.target.files[0]);
+    }
+});
+
 // Menu Functions
 
 // Open menu modal
@@ -840,7 +849,7 @@ function updateStorageLocationsList() {
     });
 }
 
-// File System Access API Functions
+// File System Access API and Alternative Functions
 
 // Select a folder for storage
 async function selectFolder() {
@@ -868,6 +877,175 @@ async function selectFolder() {
         // User canceled or error occurred
         console.error('Error selecting folder:', error);
     }
+}
+
+// Download data as a JSON file (alternative for Safari)
+function downloadAsJson() {
+    // Prepare data to download
+    const exportData = {
+        items: shoppingItems.map(item => {
+            // Create a clean copy without the full image data for smaller file size
+            const cleanItem = { ...item };
+            if (cleanItem.image) {
+                // Store that an image exists but don't include image data in JSON
+                cleanItem.hasImage = true;
+                cleanItem.image = null;
+            }
+            return cleanItem;
+        }),
+        locations: storageLocations,
+        exportDate: new Date().toISOString()
+    };
+    
+    // Convert to JSON string
+    const jsonString = JSON.stringify(exportData, null, 2);
+    
+    // Create blob from JSON
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'shopping_list_data.json';
+    
+    // Trigger download
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 0);
+}
+
+// Download all images as a ZIP file (alternative for Safari)
+async function downloadImages() {
+    // Check if there are any images to download
+    const itemsWithImages = shoppingItems.filter(item => item.image && !item.image.includes('svg'));
+    
+    if (itemsWithImages.length === 0) {
+        alert('No images to download.');
+        return;
+    }
+    
+    try {
+        // Load JSZip library dynamically
+        if (typeof JSZip === 'undefined') {
+            await loadJSZip();
+        }
+        
+        // Create a new ZIP file
+        const zip = new JSZip();
+        const imgFolder = zip.folder("images");
+        
+        // Add each image to the ZIP
+        for (const item of itemsWithImages) {
+            // Extract base64 data from data URL
+            const base64Data = item.image.split(',')[1];
+            
+            // Create a safe filename
+            const fileName = `${item.name.replace(/\s+/g, '_').toLowerCase()}.jpg`;
+            
+            // Add file to ZIP
+            imgFolder.file(fileName, base64Data, {base64: true});
+        }
+        
+        // Generate ZIP file
+        const content = await zip.generateAsync({type: 'blob'});
+        
+        // Create download link
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'shopping_list_images.zip';
+        
+        // Trigger download
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 0);
+        
+    } catch (error) {
+        console.error('Error creating ZIP file:', error);
+        alert('Failed to download images: ' + error.message);
+    }
+}
+
+// Load JSZip library dynamically
+function loadJSZip() {
+    return new Promise((resolve, reject) => {
+        // Check if already loaded
+        if (typeof JSZip !== 'undefined') {
+            resolve();
+            return;
+        }
+        
+        // Create script element
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        script.integrity = 'sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==';
+        script.crossOrigin = 'anonymous';
+        
+        // Handle load and error events
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load JSZip library'));
+        
+        // Add to document
+        document.head.appendChild(script);
+    });
+}
+
+// Import data from JSON file
+function importFromJson(file) {
+    const reader = new FileReader();
+    
+    reader.onload = function(event) {
+        try {
+            // Parse the JSON data
+            const importedData = JSON.parse(event.target.result);
+            
+            // Validate the data structure
+            if (!importedData.items || !Array.isArray(importedData.items)) {
+                throw new Error('Invalid JSON structure: missing items array');
+            }
+            
+            // If locations are included, import them
+            if (importedData.locations && Array.isArray(importedData.locations)) {
+                // Merge with existing locations, avoiding duplicates by ID
+                const existingIds = new Set(storageLocations.map(loc => loc.id));
+                const newLocations = importedData.locations.filter(loc => !existingIds.has(loc.id));
+                
+                if (newLocations.length > 0) {
+                    storageLocations = [...storageLocations, ...newLocations];
+                    saveStorageLocations();
+                }
+            }
+            
+            // Import items (without overwriting existing items with same name)
+            const existingNames = new Set(shoppingItems.map(item => item.name.toLowerCase()));
+            const newItems = importedData.items.filter(item => !existingNames.has(item.name.toLowerCase()));
+            
+            if (newItems.length > 0) {
+                shoppingItems = [...shoppingItems, ...newItems];
+                saveItems();
+                updateCardDisplay();
+            }
+            
+            alert(`Import successful!\nAdded ${newItems.length} new items.`);
+            
+        } catch (error) {
+            console.error('Error importing JSON:', error);
+            alert('Failed to import: ' + error.message);
+        }
+    };
+    
+    reader.readAsText(file);
 }
 
 // Export shopping list to the selected folder

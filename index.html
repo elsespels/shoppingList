@@ -96,9 +96,18 @@
                 </div>
             </div>
             
-            <!-- Warning for unsupported browsers -->
+            <!-- Alternative for unsupported browsers -->
             <div id="file-system-not-supported" style="display: none;">
-                <p class="warning-text">Your browser does not support direct folder access. Please use a modern browser like Chrome or Edge.</p>
+                <p class="warning-text">Your browser does not support direct folder access.</p>
+                <div class="alternative-options">
+                    <h4>Alternative Storage Options:</h4>
+                    <button id="download-json-button" class="action-button">Download as JSON</button>
+                    <button id="download-images-button" class="action-button">Download Images</button>
+                    <div class="import-container">
+                        <label for="import-json-input" class="file-input-label">Import from JSON</label>
+                        <input type="file" id="import-json-input" accept=".json" style="display: none;">
+                    </div>
+                </div>
             </div>
             
             <div class="storage-section-divider"></div>
