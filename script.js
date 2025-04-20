@@ -14,7 +14,7 @@ const detailForm = document.getElementById('detail-form');
 const addForm = document.getElementById('add-form');
 const featureRequestForm = document.getElementById('feature-request-form');
 const storageLocationForm = document.getElementById('storage-location-form');
-const exportButton = document.getElementById('export-button');
+const exportListBtn = document.getElementById('export-list-btn');
 const quantityToPurchaseElement = document.getElementById('quantity-to-purchase');
 const featureRequestBtn = document.getElementById('feature-request-btn');
 const storageLocationBtn = document.getElementById('storage-location-btn');
@@ -626,8 +626,11 @@ addForm.addEventListener('submit', addNewItem);
 // Delete button
 deleteButton.addEventListener('click', deleteItem);
 
-// Export button
-exportButton.addEventListener('click', exportList);
+// Export list option in menu
+exportListBtn.addEventListener('click', () => {
+    exportList();
+    closeModals();
+});
 
 // Update quantity to purchase on input change
 editQuantityInput.addEventListener('input', updateQuantityToPurchase);
