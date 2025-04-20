@@ -450,15 +450,59 @@ function addNewItem(e) {
     closeModals();
 }
 
-// Export the shopping list to clipboard
+// Export the shopping list to clipboard as a formatted text file
 function exportList() {
     if (shoppingItems.length === 0) {
         alert('Nothing to export');
         return;
     }
     
-    const jsonString = JSON.stringify(shoppingItems, null, 2);
-    navigator.clipboard.writeText(jsonString)
+    // First, group items by shop
+    const itemsByShop = {};
+    
+    // Add "Unknown Shop" category for items without a shop
+    itemsByShop['Unknown Shop'] = [];
+    
+    // Group all items by shop
+    shoppingItems.forEach(item => {
+        // Calculate quantity to buy
+        const quantityToBuy = Math.max(0, item.minRequired - item.quantity);
+        
+        // Skip items that don't need to be purchased
+        if (quantityToBuy <= 0) return;
+        
+        const shopName = item.shop || 'Unknown Shop';
+        
+        if (!itemsByShop[shopName]) {
+            itemsByShop[shopName] = [];
+        }
+        
+        itemsByShop[shopName].push({
+            name: item.name,
+            quantity: quantityToBuy
+        });
+    });
+    
+    // Create formatted text
+    let formattedText = 'SHOPPING LIST\n\n';
+    
+    // Add each shop's items
+    for (const shop in itemsByShop) {
+        // Skip shops with no items
+        if (itemsByShop[shop].length === 0) continue;
+        
+        formattedText += `== ${shop} ==\n`;
+        
+        // Add each item
+        itemsByShop[shop].forEach(item => {
+            formattedText += `${item.name}: ${item.quantity}\n`;
+        });
+        
+        formattedText += '\n';
+    }
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(formattedText)
         .then(() => {
             alert('Shopping list copied to clipboard');
         })
