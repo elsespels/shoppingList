@@ -55,6 +55,7 @@ let currentItemIndex = 0;
 let startX, startY, moveX, moveY;
 let isDragging = false;
 let isBarcodeScanning = false;
+let selectedDirectory = null; // For file system access API
 
 // Load data from localStorage
 function loadItems() {
@@ -661,6 +662,10 @@ featureRequestForm.addEventListener('submit', handleFeatureRequest);
 // Storage location form submission
 storageLocationForm.addEventListener('submit', addStorageLocation);
 
+// File system access buttons
+document.getElementById('select-folder-button').addEventListener('click', selectFolder);
+document.getElementById('export-to-folder-button').addEventListener('click', exportToFolder);
+
 // Menu Functions
 
 // Open menu modal
@@ -693,6 +698,30 @@ function openStorageLocationModal() {
     closeModals();
     updateStorageLocationsList();
     storageLocationModal.style.display = 'block';
+    
+    // Check if File System Access API is supported
+    if ('showDirectoryPicker' in window) {
+        document.getElementById('file-system-access-container').style.display = 'block';
+        document.getElementById('file-system-not-supported').style.display = 'none';
+        
+        // Update export button state
+        const exportButton = document.getElementById('export-to-folder-button');
+        exportButton.disabled = !selectedDirectory;
+        
+        // Show selected folder info if available
+        const folderInfo = document.getElementById('selected-folder-info');
+        const folderPath = document.getElementById('folder-path');
+        
+        if (selectedDirectory) {
+            folderInfo.style.display = 'block';
+            folderPath.textContent = selectedDirectory.name;
+        } else {
+            folderInfo.style.display = 'none';
+        }
+    } else {
+        document.getElementById('file-system-access-container').style.display = 'none';
+        document.getElementById('file-system-not-supported').style.display = 'block';
+    }
 }
 
 // Add new storage location
@@ -765,6 +794,139 @@ function updateStorageLocationsList() {
             deleteStorageLocation(id);
         });
     });
+}
+
+// File System Access API Functions
+
+// Select a folder for storage
+async function selectFolder() {
+    try {
+        // Open directory picker
+        const directoryHandle = await window.showDirectoryPicker({
+            id: 'shoppingListStorage',
+            mode: 'readwrite',
+            startIn: 'documents'
+        });
+        
+        // Save the selected directory
+        selectedDirectory = directoryHandle;
+        
+        // Update UI
+        const folderInfo = document.getElementById('selected-folder-info');
+        const folderPath = document.getElementById('folder-path');
+        folderInfo.style.display = 'block';
+        folderPath.textContent = directoryHandle.name;
+        
+        // Enable export button
+        document.getElementById('export-to-folder-button').disabled = false;
+        
+    } catch (error) {
+        // User canceled or error occurred
+        console.error('Error selecting folder:', error);
+    }
+}
+
+// Export shopping list to the selected folder
+async function exportToFolder() {
+    if (!selectedDirectory) {
+        alert('Please select a folder first');
+        return;
+    }
+    
+    try {
+        // Create metadata file with item list
+        const metadataFile = await createMetadataFile();
+        
+        // Export images for each item that has an image
+        const imagesExported = await exportItemImages();
+        
+        alert(`Shopping list successfully exported!\n${metadataFile ? 'Metadata file created.' : ''}\n${imagesExported} images exported.`);
+        
+    } catch (error) {
+        console.error('Error exporting to folder:', error);
+        alert('Failed to export shopping list: ' + error.message);
+    }
+}
+
+// Create a metadata JSON file with all shopping items
+async function createMetadataFile() {
+    if (!selectedDirectory) return false;
+    
+    try {
+        // Create a file handle
+        const fileHandle = await selectedDirectory.getFileHandle('shopping_list_data.json', { create: true });
+        
+        // Create a writable stream
+        const writable = await fileHandle.createWritable();
+        
+        // Prepare data to write - clean image data for storage efficiency
+        const exportData = {
+            items: shoppingItems.map(item => {
+                // Create a clean copy without the full image data
+                const cleanItem = { ...item };
+                if (cleanItem.image) {
+                    // Just note that image exists but don't include the full data
+                    cleanItem.image = `${cleanItem.name.replace(/\s+/g, '_').toLowerCase()}.jpg`;
+                }
+                return cleanItem;
+            }),
+            locations: storageLocations,
+            exportDate: new Date().toISOString()
+        };
+        
+        // Write the data
+        await writable.write(JSON.stringify(exportData, null, 2));
+        await writable.close();
+        
+        return true;
+    } catch (error) {
+        console.error('Error creating metadata file:', error);
+        return false;
+    }
+}
+
+// Export images for all items that have images
+async function exportItemImages() {
+    if (!selectedDirectory) return 0;
+    
+    let exportCount = 0;
+    
+    // Create images subfolder
+    let imagesFolder;
+    try {
+        imagesFolder = await selectedDirectory.getDirectoryHandle('images', { create: true });
+    } catch (error) {
+        console.error('Error creating images folder:', error);
+        return 0;
+    }
+    
+    // Process each item with an image
+    for (const item of shoppingItems) {
+        if (!item.image || item.image.includes('svg')) continue;
+        
+        try {
+            // Convert base64 image to blob
+            const response = await fetch(item.image);
+            const blob = await response.blob();
+            
+            // Create a file name based on the item name
+            const fileName = `${item.name.replace(/\s+/g, '_').toLowerCase()}.jpg`;
+            
+            // Create a file in the images folder
+            const fileHandle = await imagesFolder.getFileHandle(fileName, { create: true });
+            const writable = await fileHandle.createWritable();
+            
+            // Write the image data
+            await writable.write(blob);
+            await writable.close();
+            
+            exportCount++;
+        } catch (error) {
+            console.error(`Error exporting image for ${item.name}:`, error);
+        }
+    }
+    
+    return exportCount;
 }
 
 // Close modal when clicking outside of it

@@ -80,6 +80,31 @@
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <h2>Set Storage Location</h2>
+            
+            <!-- File System Access API Section -->
+            <div id="file-system-access-container" class="file-system-container">
+                <h3>Store Data on Your Device</h3>
+                <p>Save your shopping list and images to a folder on your device for permanent storage.</p>
+                
+                <div class="file-system-buttons">
+                    <button id="select-folder-button" class="action-button">Select Folder</button>
+                    <button id="export-to-folder-button" class="action-button" disabled>Export to Folder</button>
+                </div>
+                
+                <div id="selected-folder-info" class="selected-folder-info" style="display: none;">
+                    <p>Selected folder: <span id="folder-path">None</span></p>
+                </div>
+            </div>
+            
+            <!-- Warning for unsupported browsers -->
+            <div id="file-system-not-supported" style="display: none;">
+                <p class="warning-text">Your browser does not support direct folder access. Please use a modern browser like Chrome or Edge.</p>
+            </div>
+            
+            <div class="storage-section-divider"></div>
+            
+            <!-- Virtual Storage Locations Section -->
+            <h3>Virtual Storage Locations</h3>
             <form id="storage-location-form">
                 <div class="form-group">
                     <label for="storage-name">Location Name:</label>
