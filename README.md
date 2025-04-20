@@ -51,9 +51,17 @@ Try it out: [https://elsespels.github.io/shoppingList/](https://elsespels.github
 4. **Reorder Items**: Swipe up or down to change item position
 5. **Export Data**: Use the export button to copy your list to clipboard
 
-## 💾 Data Storage
+## 💾 Data Storage & Privacy
 
-All data is stored locally on your device using browser's localStorage. No data is sent to any server.
+**IMPORTANT: No personal information or credit card data is stored or requested anywhere in this application.**
+
+All data is stored locally on your device using browser's localStorage. No data is sent to any server. 
+
+This app:
+- Does NOT collect any personal information
+- Does NOT request or store payment details
+- Does NOT transmit any data to external servers
+- Stores ONLY your shopping list items on YOUR device
 
 ## 🙋 Contributing
 
