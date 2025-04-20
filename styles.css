@@ -68,6 +68,11 @@ body {
     cursor: grab;
     user-select: none;
     touch-action: none;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: relative;
+    overflow: hidden;
 }
 
 .card:active {
@@ -86,14 +91,16 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
 }
 
+/* Hidden when used as background */
 .card-content .product-image {
-    max-width: 100%;
-    max-height: 200px;
-    margin: 0 auto 20px;
-    border-radius: 8px;
-    object-fit: cover;
+    display: none;
 }
 
 .card h2 {
@@ -581,5 +588,11 @@ textarea {
     
     .card-content {
         padding: 20px;
+        background: rgba(255, 255, 255, 0.9);
+    }
+    
+    /* Extra styling for card content with background image */
+    .card h2 {
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 }

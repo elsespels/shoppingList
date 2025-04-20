@@ -133,15 +133,17 @@ function saveStorageLocations() {
 function updateCardDisplay() {
     if (shoppingItems.length === 0) {
         itemNameElement.textContent = 'Add your first item';
+        itemCard.style.backgroundImage = '';
         return;
     }
 
     const currentItem = shoppingItems[currentItemIndex];
     
-    // Enhanced card display with more information and product image
-    let imageHtml = '';
+    // Set background image if available
     if (currentItem.image) {
-        imageHtml = `<img src="${currentItem.image}" alt="${currentItem.name}" class="product-image">`;
+        itemCard.style.backgroundImage = `url('${currentItem.image}')`;
+    } else {
+        itemCard.style.backgroundImage = '';
     }
     
     // Get storage location info if available
@@ -154,7 +156,6 @@ function updateCardDisplay() {
     }
     
     itemCard.querySelector('.card-content').innerHTML = `
-        ${imageHtml}
         <h2 id="item-name">${currentItem.name}</h2>
         <p class="item-details">In stock: <span class="quantity">${currentItem.quantity}</span></p>
         <p class="item-details">Need to buy: <span class="to-buy">${Math.max(0, currentItem.minRequired - currentItem.quantity)}</span></p>
