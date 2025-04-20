@@ -5,14 +5,26 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
+html {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
 body {
     background-color: #f5f5f5;
     color: #333;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
     touch-action: manipulation;
     overscroll-behavior: none;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .container {
@@ -23,8 +35,11 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
-    position: relative;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
     overflow: hidden;
 }
 
@@ -32,7 +47,7 @@ body {
 
 .card-container {
     width: 100%;
-    height: 100vh;
+    height: 100%;
     position: relative;
     perspective: 1000px;
     margin: 0;
@@ -71,6 +86,14 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+
+.card-content .product-image {
+    max-width: 100%;
+    max-height: 200px;
+    margin: 0 auto 20px;
+    border-radius: 8px;
+    object-fit: cover;
 }
 
 .card h2 {
@@ -117,11 +140,15 @@ body {
     color: #fff;
 }
 
-.item-shop {
+.item-shop, .item-location {
     margin-top: 20px;
     font-style: italic;
     color: #7f8c8d;
     font-size: 18px;
+}
+
+.item-location {
+    color: #2980b9;
 }
 
 .swipe-hints {
@@ -224,6 +251,115 @@ body {
     transform: scale(0.95);
 }
 
+/* Menu Button */
+.menu-button {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background-color: transparent;
+    color: #333;
+    font-size: 24px;
+    border: none;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    z-index: 20;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(5px);
+}
+
+/* Menu Modal Styles */
+.menu-modal-content {
+    max-width: 300px;
+}
+
+.menu-items {
+    margin-top: 20px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    background-color: #f5f5f5;
+}
+
+.menu-item:hover {
+    background-color: #e0e0e0;
+}
+
+.menu-icon {
+    font-size: 24px;
+    margin-right: 15px;
+}
+
+.menu-text {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Storage Locations List */
+.storage-locations-list {
+    margin-top: 30px;
+    border-top: 1px solid #ddd;
+    padding-top: 20px;
+}
+
+.storage-locations-list h3 {
+    margin-bottom: 15px;
+    color: #555;
+}
+
+.storage-location-item {
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+.storage-location-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.storage-location-address, .storage-location-notes {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.delete-location {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #e74c3c;
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Textarea Styles */
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+    resize: vertical;
+    font-family: inherit;
+}
+
 /* Modal Styles */
 .modal {
     display: none;
@@ -284,6 +420,51 @@ body {
     border: 1px solid #ddd;
     border-radius: 5px;
     font-size: 16px;
+}
+
+/* Barcode scanner and image upload styles */
+.barcode-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.barcode-input-container input {
+    flex: 1;
+}
+
+.scan-button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.image-upload-container {
+    text-align: center;
+}
+
+.image-upload-container img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+}
+
+.image-upload-button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 5px;
 }
 
 .form-group.result {

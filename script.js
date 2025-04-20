@@ -4,12 +4,21 @@
 const itemCard = document.getElementById('item-card');
 const itemNameElement = document.getElementById('item-name');
 const addButton = document.getElementById('add-button');
+const menuButton = document.getElementById('menu-button');
 const detailModal = document.getElementById('detail-modal');
 const addModal = document.getElementById('add-modal');
+const menuModal = document.getElementById('menu-modal');
+const featureRequestModal = document.getElementById('feature-request-modal');
+const storageLocationModal = document.getElementById('storage-location-modal');
 const detailForm = document.getElementById('detail-form');
 const addForm = document.getElementById('add-form');
+const featureRequestForm = document.getElementById('feature-request-form');
+const storageLocationForm = document.getElementById('storage-location-form');
 const exportButton = document.getElementById('export-button');
 const quantityToPurchaseElement = document.getElementById('quantity-to-purchase');
+const featureRequestBtn = document.getElementById('feature-request-btn');
+const storageLocationBtn = document.getElementById('storage-location-btn');
+const storageLocationsContainer = document.getElementById('storage-locations-container');
 
 // Close buttons for modals
 const closeButtons = document.querySelectorAll('.close-button');
@@ -19,6 +28,10 @@ const editNameInput = document.getElementById('edit-name');
 const editQuantityInput = document.getElementById('edit-quantity');
 const editMinRequiredInput = document.getElementById('edit-min-required');
 const editBarcodeInput = document.getElementById('edit-barcode');
+const editScanBarcodeBtn = document.getElementById('edit-scan-barcode');
+const editProductImage = document.getElementById('edit-product-image');
+const editImageUpload = document.getElementById('edit-image-upload');
+const editCameraButton = document.getElementById('edit-camera-button');
 const editShopInput = document.getElementById('edit-shop');
 const editCategoryInput = document.getElementById('edit-category');
 const deleteButton = document.querySelector('.delete-button');
@@ -28,17 +41,24 @@ const newNameInput = document.getElementById('new-name');
 const newQuantityInput = document.getElementById('new-quantity');
 const newMinRequiredInput = document.getElementById('new-min-required');
 const newBarcodeInput = document.getElementById('new-barcode');
+const newScanBarcodeBtn = document.getElementById('new-scan-barcode');
+const newProductImage = document.getElementById('new-product-image');
+const newImageUpload = document.getElementById('new-image-upload');
+const newCameraButton = document.getElementById('new-camera-button');
 const newShopInput = document.getElementById('new-shop');
 const newCategoryInput = document.getElementById('new-category');
 
 // State
 let shoppingItems = [];
+let storageLocations = [];
 let currentItemIndex = 0;
 let startX, startY, moveX, moveY;
 let isDragging = false;
+let isBarcodeScanning = false;
 
 // Load data from localStorage
 function loadItems() {
+    // Load shopping items
     const storedItems = localStorage.getItem('shoppingItems');
     if (storedItems) {
         shoppingItems = JSON.parse(storedItems);
@@ -51,7 +71,9 @@ function loadItems() {
                 minRequired: 2,
                 barcode: "",
                 shop: "Grocery Store",
-                category: "perishable"
+                category: "perishable",
+                image: null,
+                storageLocation: null
             },
             {
                 name: "Bread",
@@ -59,7 +81,9 @@ function loadItems() {
                 minRequired: 1,
                 barcode: "",
                 shop: "Bakery",
-                category: "perishable"
+                category: "perishable",
+                image: null,
+                storageLocation: null
             },
             {
                 name: "Rice",
@@ -67,7 +91,9 @@ function loadItems() {
                 minRequired: 1,
                 barcode: "",
                 shop: "Supermarket",
-                category: "non-perishable"
+                category: "non-perishable",
+                image: null,
+                storageLocation: null
             },
             {
                 name: "Toilet Paper",
@@ -75,17 +101,32 @@ function loadItems() {
                 minRequired: 4,
                 barcode: "",
                 shop: "Convenience Store",
-                category: "non-perishable"
+                category: "non-perishable",
+                image: null,
+                storageLocation: null
             }
         ];
         saveItems();
     }
+    
+    // Load storage locations
+    const storedLocations = localStorage.getItem('storageLocations');
+    if (storedLocations) {
+        storageLocations = JSON.parse(storedLocations);
+    }
+    
     updateCardDisplay();
+    updateStorageLocationsList();
 }
 
 // Save data to localStorage
 function saveItems() {
     localStorage.setItem('shoppingItems', JSON.stringify(shoppingItems));
+}
+
+// Save storage locations to localStorage
+function saveStorageLocations() {
+    localStorage.setItem('storageLocations', JSON.stringify(storageLocations));
 }
 
 // Update the card to display the current item
@@ -97,13 +138,29 @@ function updateCardDisplay() {
 
     const currentItem = shoppingItems[currentItemIndex];
     
-    // Enhanced card display with more information
+    // Enhanced card display with more information and product image
+    let imageHtml = '';
+    if (currentItem.image) {
+        imageHtml = `<img src="${currentItem.image}" alt="${currentItem.name}" class="product-image">`;
+    }
+    
+    // Get storage location info if available
+    let locationHtml = '';
+    if (currentItem.storageLocation) {
+        const location = storageLocations.find(loc => loc.id === currentItem.storageLocation);
+        if (location) {
+            locationHtml = `<p class="item-location">📍 ${location.name}</p>`;
+        }
+    }
+    
     itemCard.querySelector('.card-content').innerHTML = `
+        ${imageHtml}
         <h2 id="item-name">${currentItem.name}</h2>
         <p class="item-details">In stock: <span class="quantity">${currentItem.quantity}</span></p>
         <p class="item-details">Need to buy: <span class="to-buy">${Math.max(0, currentItem.minRequired - currentItem.quantity)}</span></p>
         <p class="item-category ${currentItem.category}">${currentItem.category}</p>
         ${currentItem.shop ? `<p class="item-shop">Shop: ${currentItem.shop}</p>` : ''}
+        ${locationHtml}
     `;
 }
 
@@ -201,6 +258,43 @@ function openDetailModal() {
     editShopInput.value = currentItem.shop || '';
     editCategoryInput.value = currentItem.category;
     
+    // Add storage location dropdown if not already present
+    const storageLocationGroup = document.querySelector('#edit-storage-location-group');
+    if (!storageLocationGroup) {
+        const formGroup = document.createElement('div');
+        formGroup.className = 'form-group';
+        formGroup.id = 'edit-storage-location-group';
+        formGroup.innerHTML = `
+            <label for="edit-storage-location">Storage Location:</label>
+            <select id="edit-storage-location">
+                <option value="">-- Select Location --</option>
+                ${storageLocations.map(loc => 
+                    `<option value="${loc.id}" ${currentItem.storageLocation === loc.id ? 'selected' : ''}>${loc.name}</option>`
+                ).join('')}
+            </select>
+        `;
+        
+        // Insert before the category dropdown
+        const categoryGroup = document.querySelector('#edit-category').closest('.form-group');
+        categoryGroup.parentNode.insertBefore(formGroup, categoryGroup);
+    } else {
+        // Update existing dropdown
+        const dropdown = document.querySelector('#edit-storage-location');
+        dropdown.innerHTML = `
+            <option value="">-- Select Location --</option>
+            ${storageLocations.map(loc => 
+                `<option value="${loc.id}" ${currentItem.storageLocation === loc.id ? 'selected' : ''}>${loc.name}</option>`
+            ).join('')}
+        `;
+    }
+    
+    // Set product image if available
+    if (currentItem.image) {
+        editProductImage.src = currentItem.image;
+    } else {
+        editProductImage.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 24 24' fill='none' stroke='%23cccccc' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
+    }
+    
     // Calculate and display quantity to purchase
     updateQuantityToPurchase();
     
@@ -216,6 +310,39 @@ function openAddModal() {
     // Set default category
     newCategoryInput.value = 'non-perishable';
     
+    // Reset product image
+    newProductImage.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 24 24' fill='none' stroke='%23cccccc' stroke-width='1' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
+    
+    // Add storage location dropdown if not already present
+    const storageLocationGroup = document.querySelector('#new-storage-location-group');
+    if (!storageLocationGroup) {
+        const formGroup = document.createElement('div');
+        formGroup.className = 'form-group';
+        formGroup.id = 'new-storage-location-group';
+        formGroup.innerHTML = `
+            <label for="new-storage-location">Storage Location:</label>
+            <select id="new-storage-location">
+                <option value="">-- Select Location --</option>
+                ${storageLocations.map(loc => 
+                    `<option value="${loc.id}">${loc.name}</option>`
+                ).join('')}
+            </select>
+        `;
+        
+        // Insert before the category dropdown
+        const categoryGroup = document.querySelector('#new-category').closest('.form-group');
+        categoryGroup.parentNode.insertBefore(formGroup, categoryGroup);
+    } else {
+        // Update existing dropdown
+        const dropdown = document.querySelector('#new-storage-location');
+        dropdown.innerHTML = `
+            <option value="">-- Select Location --</option>
+            ${storageLocations.map(loc => 
+                `<option value="${loc.id}">${loc.name}</option>`
+            ).join('')}
+        `;
+    }
+    
     // Show the modal
     addModal.style.display = 'block';
 }
@@ -224,6 +351,9 @@ function openAddModal() {
 function closeModals() {
     detailModal.style.display = 'none';
     addModal.style.display = 'none';
+    menuModal.style.display = 'none';
+    featureRequestModal.style.display = 'none';
+    storageLocationModal.style.display = 'none';
 }
 
 // Update the quantity to purchase display
@@ -247,6 +377,17 @@ function saveEditedItem(e) {
     currentItem.barcode = editBarcodeInput.value;
     currentItem.shop = editShopInput.value;
     currentItem.category = editCategoryInput.value;
+    
+    // Save storage location if available
+    const storageLocationSelect = document.getElementById('edit-storage-location');
+    if (storageLocationSelect) {
+        currentItem.storageLocation = storageLocationSelect.value || null;
+    }
+    
+    // Save image if it has been changed from the placeholder
+    if (editProductImage.src && !editProductImage.src.includes('svg')) {
+        currentItem.image = editProductImage.src;
+    }
     
     saveItems();
     updateCardDisplay();
@@ -277,8 +418,21 @@ function addNewItem(e) {
         minRequired: parseInt(newMinRequiredInput.value) || 0,
         barcode: newBarcodeInput.value,
         shop: newShopInput.value,
-        category: newCategoryInput.value
+        category: newCategoryInput.value,
+        image: null,
+        storageLocation: null
     };
+    
+    // Save storage location if available
+    const storageLocationSelect = document.getElementById('new-storage-location');
+    if (storageLocationSelect) {
+        newItem.storageLocation = storageLocationSelect.value || null;
+    }
+    
+    // Save image if one was added
+    if (newProductImage.src && !newProductImage.src.includes('svg')) {
+        newItem.image = newProductImage.src;
+    }
     
     // Insert at current position or at the end if list is empty
     if (shoppingItems.length === 0) {
@@ -403,6 +557,37 @@ function handleDragEnd(e) {
     document.removeEventListener('touchend', handleDragEnd);
 }
 
+// Camera and Barcode Functions
+
+// Handle file selection for images
+function handleImageUpload(fileInput, imgElement) {
+    const file = fileInput.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            imgElement.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// Trigger file input when camera button is clicked
+function triggerImageUpload(fileInput) {
+    fileInput.click();
+}
+
+// Scan barcode (in a real app, this would use a barcode scanning library)
+function scanBarcode(inputElement) {
+    // Alert for now since we can't use actual barcode scanning in this demo
+    alert('This would launch a barcode scanner in a real app. For now, please enter the barcode manually.');
+    
+    // In a real implementation, this would use a library like QuaggaJS or the Web Barcode Detection API
+    // Here's a placeholder for demonstration purposes
+    setTimeout(() => {
+        inputElement.value = 'DEMO-' + Math.floor(Math.random() * 1000000);
+    }, 1000);
+}
+
 // EVENT LISTENERS
 
 // Card interaction
@@ -447,15 +632,164 @@ exportButton.addEventListener('click', exportList);
 editQuantityInput.addEventListener('input', updateQuantityToPurchase);
 editMinRequiredInput.addEventListener('input', updateQuantityToPurchase);
 
+// Camera and image upload for edit form
+editCameraButton.addEventListener('click', () => triggerImageUpload(editImageUpload));
+editImageUpload.addEventListener('change', () => handleImageUpload(editImageUpload, editProductImage));
+
+// Camera and image upload for add form
+newCameraButton.addEventListener('click', () => triggerImageUpload(newImageUpload));
+newImageUpload.addEventListener('change', () => handleImageUpload(newImageUpload, newProductImage));
+
+// Barcode scanning
+editScanBarcodeBtn.addEventListener('click', () => scanBarcode(editBarcodeInput));
+newScanBarcodeBtn.addEventListener('click', () => scanBarcode(newBarcodeInput));
+
+// Menu button
+menuButton.addEventListener('click', openMenuModal);
+
+// Menu options
+featureRequestBtn.addEventListener('click', openFeatureRequestModal);
+storageLocationBtn.addEventListener('click', openStorageLocationModal);
+
+// Feature request form submission
+featureRequestForm.addEventListener('submit', handleFeatureRequest);
+
+// Storage location form submission
+storageLocationForm.addEventListener('submit', addStorageLocation);
+
+// Menu Functions
+
+// Open menu modal
+function openMenuModal() {
+    menuModal.style.display = 'block';
+}
+
+// Handle feature request submission
+function handleFeatureRequest(e) {
+    e.preventDefault();
+    const description = document.getElementById('feature-description').value;
+    const email = document.getElementById('feature-email').value;
+    
+    // In a real app, this would send the data to a server
+    alert(`Thank you for your feature request! We'll review it soon.\n\nYour request: ${description}\nContact: ${email}`);
+    
+    // Close modal and reset form
+    document.getElementById('feature-description').value = '';
+    closeModals();
+}
+
+// Open feature request modal
+function openFeatureRequestModal() {
+    closeModals();
+    featureRequestModal.style.display = 'block';
+}
+
+// Open storage location modal
+function openStorageLocationModal() {
+    closeModals();
+    updateStorageLocationsList();
+    storageLocationModal.style.display = 'block';
+}
+
+// Add new storage location
+function addStorageLocation(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('storage-name').value;
+    const address = document.getElementById('storage-address').value;
+    const notes = document.getElementById('storage-notes').value;
+    
+    const newLocation = {
+        id: Date.now().toString(),
+        name,
+        address,
+        notes
+    };
+    
+    storageLocations.push(newLocation);
+    saveStorageLocations();
+    updateStorageLocationsList();
+    
+    // Reset form
+    storageLocationForm.reset();
+}
+
+// Delete a storage location
+function deleteStorageLocation(id) {
+    // Remove the location from the list
+    storageLocations = storageLocations.filter(location => location.id !== id);
+    
+    // Update items that use this location
+    shoppingItems.forEach(item => {
+        if (item.storageLocation === id) {
+            item.storageLocation = null;
+        }
+    });
+    
+    saveStorageLocations();
+    saveItems();
+    updateStorageLocationsList();
+    updateCardDisplay();
+}
+
+// Update the storage locations list in the UI
+function updateStorageLocationsList() {
+    storageLocationsContainer.innerHTML = '';
+    
+    if (storageLocations.length === 0) {
+        storageLocationsContainer.innerHTML = '<p>No storage locations added yet.</p>';
+        return;
+    }
+    
+    storageLocations.forEach(location => {
+        const locationElement = document.createElement('div');
+        locationElement.className = 'storage-location-item';
+        locationElement.innerHTML = `
+            <div class="storage-location-name">${location.name}</div>
+            ${location.address ? `<div class="storage-location-address">${location.address}</div>` : ''}
+            ${location.notes ? `<div class="storage-location-notes">${location.notes}</div>` : ''}
+            <button class="delete-location" data-id="${location.id}">×</button>
+        `;
+        
+        storageLocationsContainer.appendChild(locationElement);
+    });
+    
+    // Add event listeners to delete buttons
+    document.querySelectorAll('.delete-location').forEach(button => {
+        button.addEventListener('click', () => {
+            const id = button.getAttribute('data-id');
+            deleteStorageLocation(id);
+        });
+    });
+}
+
 // Close modal when clicking outside of it
 window.addEventListener('click', (e) => {
-    if (e.target === detailModal) {
-        closeModals();
-    }
-    if (e.target === addModal) {
+    if (e.target === detailModal || 
+        e.target === addModal || 
+        e.target === menuModal ||
+        e.target === featureRequestModal ||
+        e.target === storageLocationModal) {
         closeModals();
     }
 });
 
+// Hide address bar on mobile devices
+function hideAddressBar() {
+    if (document.documentElement.scrollHeight > window.outerHeight) {
+        setTimeout(function() {
+            window.scrollTo(0, 1);
+        }, 0);
+    }
+}
+
 // Initialize the app
 loadItems();
+
+// Hide address bar when page loads and when orientation changes
+window.addEventListener('load', hideAddressBar);
+window.addEventListener('orientationchange', hideAddressBar);
+window.addEventListener('resize', hideAddressBar);
+
+// Additional event to ensure address bar is hidden after a short delay
+setTimeout(hideAddressBar, 100);
