@@ -57,16 +57,307 @@ let isDragging = false;
 let isBarcodeScanning = false;
 let selectedDirectory = null; // For file system access API
 
-// Load data from localStorage
-function loadItems() {
+// IndexedDB configuration
+const DB_NAME = 'shoppingListDB';
+const DB_VERSION = 1;
+const ITEMS_STORE = 'items';
+const LOCATIONS_STORE = 'locations';
+let db = null;
+let isIndexedDBSupported = true;
+
+// Generate a UUID for items
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+// Initialize and open IndexedDB
+function initDatabase() {
+    return new Promise((resolve, reject) => {
+        if (!window.indexedDB) {
+            console.warn('IndexedDB is not supported by this browser. Falling back to localStorage.');
+            isIndexedDBSupported = false;
+            resolve(false);
+            return;
+        }
+
+        // Request persistent storage (will be silently ignored on iOS if not supported)
+        if (navigator.storage && navigator.storage.persist) {
+            navigator.storage.persist().then(isPersisted => {
+                console.log(`Persistent storage status: ${isPersisted ? 'granted' : 'denied'}`);
+            }).catch(err => {
+                console.warn('Error requesting persistent storage:', err);
+            });
+        }
+
+        // Log storage usage information
+        if (navigator.storage && navigator.storage.estimate) {
+            navigator.storage.estimate().then(estimate => {
+                console.log(`Storage usage: ${(estimate.usage / 1024 / 1024).toFixed(2)}MB out of ${(estimate.quota / 1024 / 1024).toFixed(2)}MB`);
+            });
+        }
+
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = (event) => {
+            console.error('IndexedDB error:', event.target.error);
+            isIndexedDBSupported = false;
+            resolve(false);
+        };
+
+        request.onupgradeneeded = (event) => {
+            const database = event.target.result;
+            
+            // Create items object store with UUID as key
+            if (!database.objectStoreNames.contains(ITEMS_STORE)) {
+                const itemsStore = database.createObjectStore(ITEMS_STORE, { keyPath: 'id' });
+                itemsStore.createIndex('name', 'name', { unique: false });
+            }
+            
+            // Create locations object store with UUID as key
+            if (!database.objectStoreNames.contains(LOCATIONS_STORE)) {
+                const locationsStore = database.createObjectStore(LOCATIONS_STORE, { keyPath: 'id' });
+                locationsStore.createIndex('name', 'name', { unique: false });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            console.log('IndexedDB connected successfully');
+            resolve(true);
+        };
+    });
+}
+
+// Get all items from IndexedDB
+function getItemsFromDB() {
+    return new Promise((resolve, reject) => {
+        if (!isIndexedDBSupported || !db) {
+            resolve(null);
+            return;
+        }
+
+        const transaction = db.transaction(ITEMS_STORE, 'readonly');
+        const store = transaction.objectStore(ITEMS_STORE);
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+            console.log(`Retrieved ${request.result.length} items from IndexedDB`);
+            resolve(request.result);
+        };
+
+        request.onerror = (event) => {
+            console.error('Error getting items from IndexedDB:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+// Get all storage locations from IndexedDB
+function getLocationsFromDB() {
+    return new Promise((resolve, reject) => {
+        if (!isIndexedDBSupported || !db) {
+            resolve(null);
+            return;
+        }
+
+        const transaction = db.transaction(LOCATIONS_STORE, 'readonly');
+        const store = transaction.objectStore(LOCATIONS_STORE);
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+            console.log(`Retrieved ${request.result.length} locations from IndexedDB`);
+            resolve(request.result);
+        };
+
+        request.onerror = (event) => {
+            console.error('Error getting locations from IndexedDB:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+// Save an item to IndexedDB
+function saveItemToDB(item) {
+    return new Promise((resolve, reject) => {
+        if (!isIndexedDBSupported || !db) {
+            resolve(false);
+            return;
+        }
+
+        // Ensure the item has an ID
+        if (!item.id) {
+            item.id = generateUUID();
+        }
+
+        const transaction = db.transaction(ITEMS_STORE, 'readwrite');
+        const store = transaction.objectStore(ITEMS_STORE);
+        const request = store.put(item);
+
+        request.onsuccess = () => {
+            console.log(`Item "${item.name}" saved to IndexedDB with ID: ${item.id}`);
+            resolve(true);
+        };
+
+        request.onerror = (event) => {
+            console.error('Error saving item to IndexedDB:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+// Save a storage location to IndexedDB
+function saveLocationToDB(location) {
+    return new Promise((resolve, reject) => {
+        if (!isIndexedDBSupported || !db) {
+            resolve(false);
+            return;
+        }
+
+        // Ensure the location has an ID
+        if (!location.id) {
+            location.id = generateUUID();
+        }
+
+        const transaction = db.transaction(LOCATIONS_STORE, 'readwrite');
+        const store = transaction.objectStore(LOCATIONS_STORE);
+        const request = store.put(location);
+
+        request.onsuccess = () => {
+            console.log(`Location "${location.name}" saved to IndexedDB with ID: ${location.id}`);
+            resolve(true);
+        };
+
+        request.onerror = (event) => {
+            console.error('Error saving location to IndexedDB:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+// Delete an item from IndexedDB
+function deleteItemFromDB(itemId) {
+    return new Promise((resolve, reject) => {
+        if (!isIndexedDBSupported || !db) {
+            resolve(false);
+            return;
+        }
+
+        const transaction = db.transaction(ITEMS_STORE, 'readwrite');
+        const store = transaction.objectStore(ITEMS_STORE);
+        const request = store.delete(itemId);
+
+        request.onsuccess = () => {
+            console.log(`Item with ID ${itemId} deleted from IndexedDB`);
+            resolve(true);
+        };
+
+        request.onerror = (event) => {
+            console.error('Error deleting item from IndexedDB:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+// Delete a location from IndexedDB
+function deleteLocationFromDB(locationId) {
+    return new Promise((resolve, reject) => {
+        if (!isIndexedDBSupported || !db) {
+            resolve(false);
+            return;
+        }
+
+        const transaction = db.transaction(LOCATIONS_STORE, 'readwrite');
+        const store = transaction.objectStore(LOCATIONS_STORE);
+        const request = store.delete(locationId);
+
+        request.onsuccess = () => {
+            console.log(`Location with ID ${locationId} deleted from IndexedDB`);
+            resolve(true);
+        };
+
+        request.onerror = (event) => {
+            console.error('Error deleting location from IndexedDB:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+// Load data (now uses IndexedDB with localStorage fallback)
+async function loadItems() {
+    try {
+        // Initialize IndexedDB
+        await initDatabase();
+        
+        // Try to load items from IndexedDB first
+        if (isIndexedDBSupported && db) {
+            const dbItems = await getItemsFromDB();
+            const dbLocations = await getLocationsFromDB();
+            
+            if (dbItems && dbItems.length > 0) {
+                shoppingItems = dbItems;
+            } else {
+                // No items in IndexedDB, try localStorage
+                await loadFromLocalStorage();
+                
+                // If we got items from localStorage, save them to IndexedDB for next time
+                if (shoppingItems.length > 0 && isIndexedDBSupported) {
+                    for (const item of shoppingItems) {
+                        if (!item.id) item.id = generateUUID();
+                        await saveItemToDB(item);
+                    }
+                }
+            }
+            
+            if (dbLocations && dbLocations.length > 0) {
+                storageLocations = dbLocations;
+            } else {
+                // No locations in IndexedDB, try localStorage
+                const storedLocations = localStorage.getItem('storageLocations');
+                if (storedLocations) {
+                    storageLocations = JSON.parse(storedLocations);
+                    
+                    // Save to IndexedDB for next time
+                    if (isIndexedDBSupported) {
+                        for (const location of storageLocations) {
+                            if (!location.id) location.id = generateUUID();
+                            await saveLocationToDB(location);
+                        }
+                    }
+                }
+            }
+        } else {
+            // IndexedDB not supported, use localStorage
+            await loadFromLocalStorage();
+        }
+    } catch (error) {
+        console.error('Error loading items:', error);
+        // Fallback to localStorage on any error
+        await loadFromLocalStorage();
+    }
+    
+    updateCardDisplay();
+    updateStorageLocationsList();
+}
+
+// Fallback to load from localStorage
+async function loadFromLocalStorage() {
     // Load shopping items
     const storedItems = localStorage.getItem('shoppingItems');
     if (storedItems) {
         shoppingItems = JSON.parse(storedItems);
+        // Ensure all items have IDs
+        shoppingItems.forEach(item => {
+            if (!item.id) item.id = generateUUID();
+        });
     } else {
         // Add sample items for first-time users
         shoppingItems = [
             {
+                id: generateUUID(),
                 name: "Milk",
                 quantity: 1,
                 minRequired: 2,
@@ -77,6 +368,7 @@ function loadItems() {
                 storageLocation: null
             },
             {
+                id: generateUUID(),
                 name: "Bread",
                 quantity: 0,
                 minRequired: 1,
@@ -87,6 +379,7 @@ function loadItems() {
                 storageLocation: null
             },
             {
+                id: generateUUID(),
                 name: "Rice",
                 quantity: 3,
                 minRequired: 1,
@@ -97,6 +390,7 @@ function loadItems() {
                 storageLocation: null
             },
             {
+                id: generateUUID(),
                 name: "Toilet Paper",
                 quantity: 2,
                 minRequired: 4,
@@ -114,20 +408,51 @@ function loadItems() {
     const storedLocations = localStorage.getItem('storageLocations');
     if (storedLocations) {
         storageLocations = JSON.parse(storedLocations);
+        // Ensure all locations have IDs
+        storageLocations.forEach(location => {
+            if (!location.id) location.id = generateUUID();
+        });
     }
-    
-    updateCardDisplay();
-    updateStorageLocationsList();
 }
 
-// Save data to localStorage
-function saveItems() {
-    localStorage.setItem('shoppingItems', JSON.stringify(shoppingItems));
+// Save data (now uses IndexedDB with localStorage fallback)
+async function saveItems() {
+    try {
+        // Always update localStorage as a backup
+        localStorage.setItem('shoppingItems', JSON.stringify(shoppingItems));
+        
+        // If IndexedDB is supported, save there too
+        if (isIndexedDBSupported && db) {
+            for (const item of shoppingItems) {
+                if (!item.id) item.id = generateUUID();
+                await saveItemToDB(item);
+            }
+        }
+    } catch (error) {
+        console.error('Error saving items:', error);
+        // At least ensure localStorage is updated
+        localStorage.setItem('shoppingItems', JSON.stringify(shoppingItems));
+    }
 }
 
-// Save storage locations to localStorage
-function saveStorageLocations() {
-    localStorage.setItem('storageLocations', JSON.stringify(storageLocations));
+// Save storage locations (now uses IndexedDB with localStorage fallback)
+async function saveStorageLocations() {
+    try {
+        // Always update localStorage as a backup
+        localStorage.setItem('storageLocations', JSON.stringify(storageLocations));
+        
+        // If IndexedDB is supported, save there too
+        if (isIndexedDBSupported && db) {
+            for (const location of storageLocations) {
+                if (!location.id) location.id = generateUUID();
+                await saveLocationToDB(location);
+            }
+        }
+    } catch (error) {
+        console.error('Error saving storage locations:', error);
+        // At least ensure localStorage is updated
+        localStorage.setItem('storageLocations', JSON.stringify(storageLocations));
+    }
 }
 
 // Update the card to display the current item
@@ -367,12 +692,19 @@ function updateQuantityToPurchase() {
 }
 
 // Save the edited item
-function saveEditedItem(e) {
+async function saveEditedItem(e) {
     e.preventDefault();
     
     if (shoppingItems.length === 0) return;
     
     const currentItem = shoppingItems[currentItemIndex];
+    
+    // Ensure the item has an ID
+    if (!currentItem.id) {
+        currentItem.id = generateUUID();
+    }
+    
+    // Update item properties
     currentItem.name = editNameInput.value;
     currentItem.quantity = parseInt(editQuantityInput.value) || 0;
     currentItem.minRequired = parseInt(editMinRequiredInput.value) || 0;
@@ -391,30 +723,55 @@ function saveEditedItem(e) {
         currentItem.image = editProductImage.src;
     }
     
-    saveItems();
+    // Save to IndexedDB if supported
+    if (isIndexedDBSupported && db) {
+        try {
+            await saveItemToDB(currentItem);
+        } catch (error) {
+            console.error('Error saving edited item to IndexedDB:', error);
+        }
+    }
+    
+    // Update localStorage as backup
+    await saveItems();
     updateCardDisplay();
     closeModals();
 }
 
 // Delete the current item
-function deleteItem() {
+async function deleteItem() {
     if (shoppingItems.length === 0) return;
     
+    const itemToDelete = shoppingItems[currentItemIndex];
+    const itemId = itemToDelete.id;
+    
+    // Remove from array
     shoppingItems.splice(currentItemIndex, 1);
     if (currentItemIndex >= shoppingItems.length) {
         currentItemIndex = Math.max(0, shoppingItems.length - 1);
     }
     
-    saveItems();
+    // Delete from IndexedDB if supported
+    if (isIndexedDBSupported && db && itemId) {
+        try {
+            await deleteItemFromDB(itemId);
+        } catch (error) {
+            console.error('Error deleting item from IndexedDB:', error);
+        }
+    }
+    
+    // Update localStorage as backup
+    await saveItems();
     updateCardDisplay();
     closeModals();
 }
 
 // Add a new item
-function addNewItem(e) {
+async function addNewItem(e) {
     e.preventDefault();
     
     const newItem = {
+        id: generateUUID(),
         name: newNameInput.value,
         quantity: parseInt(newQuantityInput.value) || 0,
         minRequired: parseInt(newMinRequiredInput.value) || 0,
@@ -445,7 +802,17 @@ function addNewItem(e) {
         currentItemIndex++;
     }
     
-    saveItems();
+    // Save to IndexedDB if supported
+    if (isIndexedDBSupported && db) {
+        try {
+            await saveItemToDB(newItem);
+        } catch (error) {
+            console.error('Error saving new item to IndexedDB:', error);
+        }
+    }
+    
+    // Update localStorage as backup
+    await saveItems();
     updateCardDisplay();
     closeModals();
 }
@@ -778,7 +1145,7 @@ function openStorageLocationModal() {
 }
 
 // Add new storage location
-function addStorageLocation(e) {
+async function addStorageLocation(e) {
     e.preventDefault();
     
     const name = document.getElementById('storage-name').value;
@@ -786,14 +1153,26 @@ function addStorageLocation(e) {
     const notes = document.getElementById('storage-notes').value;
     
     const newLocation = {
-        id: Date.now().toString(),
+        id: generateUUID(),
         name,
         address,
         notes
     };
     
+    // Add to array
     storageLocations.push(newLocation);
-    saveStorageLocations();
+    
+    // Save to IndexedDB if supported
+    if (isIndexedDBSupported && db) {
+        try {
+            await saveLocationToDB(newLocation);
+        } catch (error) {
+            console.error('Error saving location to IndexedDB:', error);
+        }
+    }
+    
+    // Update localStorage as backup
+    await saveStorageLocations();
     updateStorageLocationsList();
     
     // Reset form
@@ -801,19 +1180,36 @@ function addStorageLocation(e) {
 }
 
 // Delete a storage location
-function deleteStorageLocation(id) {
+async function deleteStorageLocation(id) {
     // Remove the location from the list
     storageLocations = storageLocations.filter(location => location.id !== id);
     
     // Update items that use this location
+    let itemsToUpdate = [];
     shoppingItems.forEach(item => {
         if (item.storageLocation === id) {
             item.storageLocation = null;
+            itemsToUpdate.push(item);
         }
     });
     
-    saveStorageLocations();
-    saveItems();
+    // Delete from IndexedDB if supported
+    if (isIndexedDBSupported && db) {
+        try {
+            await deleteLocationFromDB(id);
+            
+            // Update all affected items in IndexedDB
+            for (const item of itemsToUpdate) {
+                await saveItemToDB(item);
+            }
+        } catch (error) {
+            console.error('Error deleting location from IndexedDB:', error);
+        }
+    }
+    
+    // Update localStorage as backup
+    await saveStorageLocations();
+    await saveItems();
     updateStorageLocationsList();
     updateCardDisplay();
 }
