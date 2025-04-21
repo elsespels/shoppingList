@@ -25,6 +25,7 @@ body {
     overscroll-behavior: none;
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none; /* iOS Safari */
 }
 
 .container {
@@ -96,6 +97,10 @@ body {
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 /* Hidden when used as background */
@@ -109,17 +114,32 @@ body {
     word-break: break-word;
     color: #2c3e50;
     font-weight: 600;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    pointer-events: none;
 }
 
 .item-details {
     margin: 12px 0;
     font-size: 24px;
     color: #555;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    pointer-events: none;
 }
 
 .quantity, .to-buy {
     font-weight: bold;
     font-size: 26px;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    pointer-events: none;
 }
 
 .to-buy {
@@ -135,6 +155,11 @@ body {
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 600;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    pointer-events: none;
 }
 
 .perishable {
@@ -152,6 +177,11 @@ body {
     font-style: italic;
     color: #7f8c8d;
     font-size: 18px;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    pointer-events: none;
 }
 
 .item-location {
@@ -177,6 +207,11 @@ body {
     background-color: rgba(255, 255, 255, 0.7);
     border-radius: 5px;
     font-size: 14px;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    pointer-events: none;
 }
 
 .hint.left {
