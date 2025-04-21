@@ -704,7 +704,10 @@ function updateQuantityToPurchase() {
 
 // Save the edited item
 async function saveEditedItem(e) {
-    e.preventDefault();
+    // If called from a form submit event, prevent default
+    if (e && e.preventDefault) {
+        e.preventDefault();
+    }
     
     if (shoppingItems.length === 0) return;
     
@@ -746,7 +749,11 @@ async function saveEditedItem(e) {
     // Update localStorage as backup
     await saveItems();
     updateCardDisplay();
-    closeModals();
+    
+    // Only close modals if this wasn't an autosave during image upload
+    if (e) {
+        closeModals();
+    }
 }
 
 // Delete the current item
@@ -988,13 +995,29 @@ function handleImageUpload(fileInput, imgElement) {
     const file = fileInput.files[0];
     if (file) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             // Set the image source
             imgElement.src = e.target.result;
             
             // If we're in the edit form, immediately update the current item
             if (imgElement === editProductImage && shoppingItems.length > 0) {
-                shoppingItems[currentItemIndex].image = e.target.result;
+                const currentItem = shoppingItems[currentItemIndex];
+                
+                // Update the image in the item object
+                currentItem.image = e.target.result;
+                
+                // Autosave the item to IndexedDB
+                if (isIndexedDBSupported && db) {
+                    try {
+                        await saveItemToDB(currentItem);
+                        console.log('Image autosaved to IndexedDB');
+                    } catch (error) {
+                        console.error('Error autosaving image to IndexedDB:', error);
+                    }
+                }
+                
+                // Update localStorage as backup
+                await saveItems();
                 
                 // Refresh the card display to show the new background
                 updateCardDisplay();
@@ -1052,8 +1075,22 @@ closeButtons.forEach(button => {
 });
 
 // Form submissions
-detailForm.addEventListener('submit', saveEditedItem);
+// Note: We've changed the detail form to use a button instead of form submission
+detailForm.addEventListener('submit', function(e) {
+    // Prevent default form submission
+    e.preventDefault();
+    // Still save the data, even though we now have autosave
+    saveEditedItem();
+});
 addForm.addEventListener('submit', addNewItem);
+
+// Exit button
+document.querySelector('.exit-button').addEventListener('click', function() {
+    // Autosave current changes
+    saveEditedItem();
+    // Close the modal
+    closeModals();
+});
 
 // Delete button
 deleteButton.addEventListener('click', deleteItem);

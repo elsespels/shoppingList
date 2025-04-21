@@ -590,7 +590,7 @@ textarea {
     margin-top: 20px;
 }
 
-.save-button {
+.save-button, .exit-button {
     background-color: #3498db;
     color: white;
     border: none;
@@ -601,7 +601,7 @@ textarea {
     transition: background-color 0.2s;
 }
 
-.save-button:hover {
+.save-button:hover, .exit-button:hover {
     background-color: #2980b9;
 }
 
