@@ -9,16 +9,14 @@ const detailModal = document.getElementById('detail-modal');
 const addModal = document.getElementById('add-modal');
 const menuModal = document.getElementById('menu-modal');
 const featureRequestModal = document.getElementById('feature-request-modal');
-const storageLocationModal = document.getElementById('storage-location-modal');
+const instructionsModal = document.getElementById('instructions-modal');
 const detailForm = document.getElementById('detail-form');
 const addForm = document.getElementById('add-form');
 const featureRequestForm = document.getElementById('feature-request-form');
-const storageLocationForm = document.getElementById('storage-location-form');
 const exportListBtn = document.getElementById('export-list-btn');
 const quantityToPurchaseElement = document.getElementById('quantity-to-purchase');
 const featureRequestBtn = document.getElementById('feature-request-btn');
-const storageLocationBtn = document.getElementById('storage-location-btn');
-const storageLocationsContainer = document.getElementById('storage-locations-container');
+const instructionsBtn = document.getElementById('instructions-btn');
 
 // Close buttons for modals
 const closeButtons = document.querySelectorAll('.close-button');
@@ -705,7 +703,7 @@ function closeModals() {
     addModal.style.display = 'none';
     menuModal.style.display = 'none';
     featureRequestModal.style.display = 'none';
-    storageLocationModal.style.display = 'none';
+    instructionsModal.style.display = 'none';
 }
 
 // Update the quantity to purchase display
@@ -1139,26 +1137,10 @@ menuButton.addEventListener('click', openMenuModal);
 
 // Menu options
 featureRequestBtn.addEventListener('click', openFeatureRequestModal);
-storageLocationBtn.addEventListener('click', openStorageLocationModal);
+instructionsBtn.addEventListener('click', openInstructionsModal);
 
 // Feature request form submission
 featureRequestForm.addEventListener('submit', handleFeatureRequest);
-
-// Storage location form submission
-storageLocationForm.addEventListener('submit', addStorageLocation);
-
-// File system access buttons
-document.getElementById('select-folder-button').addEventListener('click', selectFolder);
-document.getElementById('export-to-folder-button').addEventListener('click', exportToFolder);
-
-// Alternative storage options for browsers without File System Access API
-document.getElementById('download-json-button').addEventListener('click', downloadAsJson);
-document.getElementById('download-images-button').addEventListener('click', downloadImages);
-document.getElementById('import-json-input').addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        importFromJson(e.target.files[0]);
-    }
-});
 
 // Menu Functions
 
@@ -1187,35 +1169,10 @@ function openFeatureRequestModal() {
     featureRequestModal.style.display = 'block';
 }
 
-// Open storage location modal
-function openStorageLocationModal() {
+// Open instructions modal
+function openInstructionsModal() {
     closeModals();
-    updateStorageLocationsList();
-    storageLocationModal.style.display = 'block';
-    
-    // Check if File System Access API is supported
-    if ('showDirectoryPicker' in window) {
-        document.getElementById('file-system-access-container').style.display = 'block';
-        document.getElementById('file-system-not-supported').style.display = 'none';
-        
-        // Update export button state
-        const exportButton = document.getElementById('export-to-folder-button');
-        exportButton.disabled = !selectedDirectory;
-        
-        // Show selected folder info if available
-        const folderInfo = document.getElementById('selected-folder-info');
-        const folderPath = document.getElementById('folder-path');
-        
-        if (selectedDirectory) {
-            folderInfo.style.display = 'block';
-            folderPath.textContent = selectedDirectory.name;
-        } else {
-            folderInfo.style.display = 'none';
-        }
-    } else {
-        document.getElementById('file-system-access-container').style.display = 'none';
-        document.getElementById('file-system-not-supported').style.display = 'block';
-    }
+    instructionsModal.style.display = 'block';
 }
 
 // Add new storage location
@@ -1249,8 +1206,7 @@ async function addStorageLocation(e) {
     await saveStorageLocations();
     updateStorageLocationsList();
     
-    // Reset form
-    storageLocationForm.reset();
+    // No form to reset now
 }
 
 // Delete a storage location
@@ -1627,7 +1583,7 @@ window.addEventListener('click', (e) => {
         e.target === addModal || 
         e.target === menuModal ||
         e.target === featureRequestModal ||
-        e.target === storageLocationModal) {
+        e.target === instructionsModal) {
         closeModals();
     }
 });

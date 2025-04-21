@@ -67,9 +67,9 @@
                     <span class="menu-icon">💡</span>
                     <span class="menu-text">Feature Request</span>
                 </div>
-                <div class="menu-item" id="storage-location-btn">
-                    <span class="menu-icon">📍</span>
-                    <span class="menu-text">Set Storage Location</span>
+                <div class="menu-item" id="instructions-btn">
+                    <span class="menu-icon">📖</span>
+                    <span class="menu-text">Instructions</span>
                 </div>
             </div>
         </div>
@@ -94,63 +94,50 @@
         </div>
     </div>
     
-    <!-- Storage Location Modal -->
-    <div id="storage-location-modal" class="modal">
+    <!-- Instructions Modal -->
+    <div id="instructions-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
-            <h2>Set Storage Location</h2>
+            <h2>How to Use Swipe List</h2>
             
-            <!-- File System Access API Section -->
-            <div id="file-system-access-container" class="file-system-container">
-                <h3>Store Data on Your Device</h3>
-                <p>Save your shopping list and images to a folder on your device for permanent storage.</p>
-                
-                <div class="file-system-buttons">
-                    <button id="select-folder-button" class="action-button">Select Folder</button>
-                    <button id="export-to-folder-button" class="action-button" disabled>Export to Folder</button>
-                </div>
-                
-                <div id="selected-folder-info" class="selected-folder-info" style="display: none;">
-                    <p>Selected folder: <span id="folder-path">None</span></p>
-                </div>
+            <div class="instructions-section">
+                <h3>Swipe Gestures</h3>
+                <ul>
+                    <li><strong>Swipe Left</strong> - Go to next item</li>
+                    <li><strong>Swipe Right</strong> - Go to previous item</li>
+                    <li><strong>Swipe Up</strong> - Move item higher in the list</li>
+                    <li><strong>Swipe Down</strong> - Move item lower in the list</li>
+                    <li><strong>Long Press</strong> - Edit item details</li>
+                </ul>
             </div>
             
-            <!-- Alternative for unsupported browsers -->
-            <div id="file-system-not-supported" style="display: none;">
-                <p class="warning-text">Your browser does not support direct folder access.</p>
-                <div class="alternative-options">
-                    <h4>Alternative Storage Options:</h4>
-                    <button id="download-json-button" class="action-button">Download as JSON</button>
-                    <button id="download-images-button" class="action-button">Download Images</button>
-                    <div class="import-container">
-                        <label for="import-json-input" class="file-input-label">Import from JSON</label>
-                        <input type="file" id="import-json-input" accept=".json" style="display: none;">
-                    </div>
-                </div>
+            <div class="instructions-section">
+                <h3>Item Management</h3>
+                <ul>
+                    <li><strong>Add Items</strong> - Tap the + button in the bottom right</li>
+                    <li><strong>Take Photos</strong> - Use the camera button to add item images</li>
+                    <li><strong>Edit Items</strong> - Long press a card to modify quantities or details</li>
+                    <li><strong>Delete Items</strong> - Use the delete button in edit mode</li>
+                </ul>
             </div>
             
-            <div class="storage-section-divider"></div>
+            <div class="instructions-section">
+                <h3>Shopping List Features</h3>
+                <ul>
+                    <li><strong>Auto-calculation</strong> - The app calculates how many items to buy</li>
+                    <li><strong>Export List</strong> - Use the menu to export your shopping list</li>
+                    <li><strong>Offline Use</strong> - Works even without internet connection</li>
+                    <li><strong>Auto-save</strong> - All changes are automatically saved</li>
+                </ul>
+            </div>
             
-            <!-- Virtual Storage Locations Section -->
-            <h3>Virtual Storage Locations</h3>
-            <form id="storage-location-form">
-                <div class="form-group">
-                    <label for="storage-name">Location Name:</label>
-                    <input type="text" id="storage-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="storage-address">Address (optional):</label>
-                    <input type="text" id="storage-address">
-                </div>
-                <div class="form-group">
-                    <label for="storage-notes">Notes (optional):</label>
-                    <textarea id="storage-notes" rows="3"></textarea>
-                </div>
-                <button type="submit" class="save-button">Save Location</button>
-            </form>
-            <div class="storage-locations-list">
-                <h3>Saved Locations</h3>
-                <div id="storage-locations-container"></div>
+            <div class="instructions-section">
+                <h3>Installation</h3>
+                <p>Add to your home screen for a full-screen app experience:</p>
+                <ul>
+                    <li><strong>iOS</strong> - Tap Share icon, then "Add to Home Screen"</li>
+                    <li><strong>Android</strong> - Tap menu, then "Add to Home screen"</li>
+                </ul>
             </div>
         </div>
     </div>
