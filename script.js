@@ -1590,6 +1590,43 @@ function hideAddressBar() {
     }
 }
 
+// Sync all data to ensure it's properly saved
+async function syncData() {
+    console.log('Syncing data...');
+    try {
+        // Save to IndexedDB and localStorage
+        await saveItems();
+        await saveStorageLocations();
+        
+        // Notify service worker about the sync (useful for background syncing)
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'SYNC_DATA'
+            });
+        }
+        console.log('Data sync complete');
+    } catch (error) {
+        console.error('Error syncing data:', error);
+    }
+}
+
+// Add event listeners to save data when app is closing or being backgrounded
+window.addEventListener('beforeunload', async function() {
+    // Save all data before the app closes
+    await syncData();
+});
+
+// Also save when the page is hidden (user switches apps or tabs)
+document.addEventListener('visibilitychange', async function() {
+    if (document.visibilityState === 'hidden') {
+        // When app is sent to background, save all data
+        await syncData();
+    }
+});
+
+// Auto-save data every 30 seconds to prevent data loss
+setInterval(syncData, 30000);
+
 // Initialize the app
 loadItems();
 
