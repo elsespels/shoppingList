@@ -467,9 +467,20 @@ function updateCardDisplay() {
     
     // Set background image if available
     if (currentItem.image) {
+        // Clear any existing background and set new one
         itemCard.style.backgroundImage = `url('${currentItem.image}')`;
+        itemCard.style.backgroundSize = 'cover';
+        itemCard.style.backgroundPosition = 'center';
+        
+        // Make the card content area more transparent to let image show through
+        const cardContent = itemCard.querySelector('.card-content');
+        cardContent.style.background = 'rgba(255, 255, 255, 0.7)';
+        cardContent.style.backdropFilter = 'blur(5px)';
     } else {
+        // Reset styles if no image
         itemCard.style.backgroundImage = '';
+        const cardContent = itemCard.querySelector('.card-content');
+        cardContent.style.background = 'rgba(255, 255, 255, 0.85)';
     }
     
     // Get storage location info if available
@@ -978,7 +989,16 @@ function handleImageUpload(fileInput, imgElement) {
     if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
+            // Set the image source
             imgElement.src = e.target.result;
+            
+            // If we're in the edit form, immediately update the current item
+            if (imgElement === editProductImage && shoppingItems.length > 0) {
+                shoppingItems[currentItemIndex].image = e.target.result;
+                
+                // Refresh the card display to show the new background
+                updateCardDisplay();
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -1054,7 +1074,10 @@ editImageUpload.addEventListener('change', () => handleImageUpload(editImageUplo
 
 // Camera and image upload for add form
 newCameraButton.addEventListener('click', () => triggerImageUpload(newImageUpload));
-newImageUpload.addEventListener('change', () => handleImageUpload(newImageUpload, newProductImage));
+newImageUpload.addEventListener('change', () => {
+    handleImageUpload(newImageUpload, newProductImage);
+    // Don't update card here - wait until the item is actually added
+});
 
 // Barcode scanning
 editScanBarcodeBtn.addEventListener('click', () => scanBarcode(editBarcodeInput));
