@@ -471,16 +471,30 @@ function updateCardDisplay() {
         itemCard.style.backgroundImage = `url('${currentItem.image}')`;
         itemCard.style.backgroundSize = 'cover';
         itemCard.style.backgroundPosition = 'center';
+        itemCard.style.backgroundRepeat = 'no-repeat';
         
         // Make the card content area more transparent to let image show through
         const cardContent = itemCard.querySelector('.card-content');
-        cardContent.style.background = 'rgba(255, 255, 255, 0.7)';
-        cardContent.style.backdropFilter = 'blur(5px)';
+        cardContent.style.background = 'rgba(255, 255, 255, 0.5)'; // More transparent
+        cardContent.style.backdropFilter = 'blur(3px)';
+        cardContent.style.color = '#000'; // Ensure text is dark for readability
+        
+        // Add a subtle text shadow for better readability against varied backgrounds
+        const headings = cardContent.querySelectorAll('h2, p');
+        headings.forEach(heading => {
+            heading.style.textShadow = '0 0 5px rgba(255, 255, 255, 0.7)';
+        });
     } else {
         // Reset styles if no image
         itemCard.style.backgroundImage = '';
         const cardContent = itemCard.querySelector('.card-content');
         cardContent.style.background = 'rgba(255, 255, 255, 0.85)';
+        
+        // Remove text shadows when no background image
+        const headings = cardContent.querySelectorAll('h2, p');
+        headings.forEach(heading => {
+            heading.style.textShadow = 'none';
+        });
     }
     
     // Get storage location info if available
