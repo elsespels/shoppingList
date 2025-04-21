@@ -506,12 +506,33 @@ function updateCardDisplay() {
     
     itemCard.querySelector('.card-content').innerHTML = `
         <h2 id="item-name">${currentItem.name}</h2>
-        <p class="item-details">In stock: <span class="quantity">${currentItem.quantity}</span></p>
+        <div class="item-details quantity-control">
+            <span>In stock:</span>
+            <div class="quantity-buttons">
+                <button class="quantity-btn minus-btn" data-action="decrease">-</button>
+                <span class="quantity">${currentItem.quantity}</span>
+                <button class="quantity-btn plus-btn" data-action="increase">+</button>
+            </div>
+        </div>
         <p class="item-details">Need to buy: <span class="to-buy">${Math.max(0, currentItem.minRequired - currentItem.quantity)}</span></p>
         <p class="item-category ${currentItem.category}">${currentItem.category}</p>
         ${currentItem.shop ? `<p class="item-shop">Shop: ${currentItem.shop}</p>` : ''}
         ${locationHtml}
     `;
+    
+    // Add event listeners to the quantity buttons
+    const minusBtn = itemCard.querySelector('.minus-btn');
+    const plusBtn = itemCard.querySelector('.plus-btn');
+    
+    minusBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering card swipe
+        updateQuantityFromCard('decrease');
+    });
+    
+    plusBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent triggering card swipe
+        updateQuantityFromCard('increase');
+    });
 }
 
 // Navigate to the previous item
@@ -714,6 +735,38 @@ function updateQuantityToPurchase() {
     quantityToPurchaseElement.textContent = toPurchase;
 }
 
+// Update item quantity directly from the card
+async function updateQuantityFromCard(action) {
+    if (shoppingItems.length === 0) return;
+    
+    const currentItem = shoppingItems[currentItemIndex];
+    
+    // Update quantity based on button clicked
+    if (action === 'decrease') {
+        // Don't allow negative quantities
+        if (currentItem.quantity > 0) {
+            currentItem.quantity--;
+        }
+    } else if (action === 'increase') {
+        currentItem.quantity++;
+    }
+    
+    // Save changes to IndexedDB
+    if (isIndexedDBSupported && db) {
+        try {
+            await saveItemToDB(currentItem);
+        } catch (error) {
+            console.error('Error saving quantity change to IndexedDB:', error);
+        }
+    }
+    
+    // Update localStorage as backup
+    await saveItems();
+    
+    // Update the display
+    updateCardDisplay();
+}
+
 // Save the edited item
 async function saveEditedItem(e) {
     // If called from a form submit event, prevent default
@@ -913,6 +966,11 @@ function exportList() {
 
 // Start tracking touch/mouse position
 function handleDragStart(e) {
+    // Check if we're clicking on a quantity button - ignore drag if so
+    if (e.target.closest && e.target.closest('.quantity-btn')) {
+        return;
+    }
+    
     // For mouse events
     if (e.type === 'mousedown') {
         startX = e.clientX;
@@ -1064,10 +1122,18 @@ itemCard.addEventListener('touchstart', handleDragStart, { passive: true });
 
 // Long press detection for opening detail view
 let longPressTimer;
-itemCard.addEventListener('mousedown', () => {
+itemCard.addEventListener('mousedown', (e) => {
+    // Ignore long press for quantity buttons
+    if (e.target.closest && e.target.closest('.quantity-btn')) {
+        return;
+    }
     longPressTimer = setTimeout(openDetailModal, 800);
 });
-itemCard.addEventListener('touchstart', () => {
+itemCard.addEventListener('touchstart', (e) => {
+    // Ignore long press for quantity buttons
+    if (e.target.closest && e.target.closest('.quantity-btn')) {
+        return;
+    }
     longPressTimer = setTimeout(openDetailModal, 800);
 }, { passive: true });
 
